@@ -1,21 +1,37 @@
-import { useEffect } from "react";
-import { io } from "socket.io-client";
-import Chat from "./pages/Chat";
+import { useEffect, useState } from "react";
+import ChatUI from "../components/ChatUI";
 
-const socket = io("http://localhost:5000");
+export default function Chat({ socket }) {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
 
-function App() {
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
+    socket.on("receive-message", (msg) => {
+      setMessages((prev) => [...prev, { text: msg, self: false }]);
     });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    return () => socket.off("receive-message");
+  }, [socket]);
 
-  return <Chat socket={socket} />;
+  const sendMessage = () => {
+    if (!message.trim()) return;
+
+    socket.emit("send-message", message);
+
+    setMessages((prev) => [
+      ...prev,
+      { text: message, self: true },
+    ]);
+
+    setMessage("");
+  };
+
+  return (
+    <ChatUI
+      message={message}
+      setMessage={setMessage}
+      messages={messages}
+      sendMessage={sendMessage}
+    />
+  );
 }
-
-export default App;
