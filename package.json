@@ -13,6 +13,16 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.2",
-    "concurrently": "^8.2.2"
+   
+    "concurrently": "^8.2.2",
+   
+    "stylelint-config-tailwindcss": "^1.0.1"
+   
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.563.0",
+    "react-router-dom": "^7.13.0",
+    "tailwind-merge": "^3.4.0"
   }
 }

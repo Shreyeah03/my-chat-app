@@ -20,8 +20,6 @@ io.on("connection", (socket) => {
 
   socket.on("send-message", (message) => {
     console.log("Message received:", message);
-
-
     io.emit("receive-message", message);
   });
 

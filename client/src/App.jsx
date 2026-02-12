@@ -1,37 +1,29 @@
-import { useEffect, useState } from "react";
-import ChatUI from "../components/ChatUI";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Auth from "./pages/Auth";
+import Chat from "./pages/Chat";
+import Sidebar from "./components/Sidebar";
 
-export default function Chat({ socket }) {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-
-  useEffect(() => {
-    socket.on("receive-message", (msg) => {
-      setMessages((prev) => [...prev, { text: msg, self: false }]);
-    });
-
-    return () => socket.off("receive-message");
-  }, [socket]);
-
-  const sendMessage = () => {
-    if (!message.trim()) return;
-
-    socket.emit("send-message", message);
-
-    setMessages((prev) => [
-      ...prev,
-      { text: message, self: true },
-    ]);
-
-    setMessage("");
-  };
-
+function ChatLayout() {
   return (
-    <ChatUI
-      message={message}
-      setMessage={setMessage}
-      messages={messages}
-      sendMessage={sendMessage}
-    />
+    <div className="flex h-screen bg-[#0f172a]">
+      <Sidebar />
+      <Chat />
+    </div>
   );
 }
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Auth />} />
+        <Route path="/chat" element={<ChatLayout />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+<h1 className="text-5xl text-purple-500">
+  Tailwind Test
+</h1>
