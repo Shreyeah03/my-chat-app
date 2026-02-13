@@ -15,13 +15,55 @@ export default function Auth() {
 
   const handleSubmit = async () => {
     try {
+      let userCredential;
+
+      // ✅ LOGIN
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
       }
 
-      navigate("/chat");
+      // ✅ SIGNUP
+      else {
+        userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        // New users → avatar not set
+        const newUser = {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          isAvatarImageSet: false
+        };
+
+        localStorage.setItem("chat-user", JSON.stringify(newUser));
+
+        navigate("/setup-avatar");
+        return;
+      }
+
+      // ✅ LOGIN FLOW
+      const existingUser =
+        JSON.parse(localStorage.getItem("chat-user")) || {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          isAvatarImageSet: false
+        };
+
+      localStorage.setItem("chat-user", JSON.stringify(existingUser));
+
+      // Redirect based on avatar status
+      if (!existingUser.isAvatarImageSet) {
+        navigate("/setup-avatar");
+      } else {
+        navigate("/chat");
+      }
+
     } catch (err) {
       alert(err.message);
     }
