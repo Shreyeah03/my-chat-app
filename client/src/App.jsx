@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
+import AvatarSetup from "./pages/AvatarSetup";
 import Sidebar from "./components/Sidebar";
 
 function ChatLayout() {
@@ -18,12 +19,10 @@ function App() {
       <Routes>
         <Route path="/" element={<Auth />} />
         <Route path="/chat" element={<ChatLayout />} />
+        <Route path="/setup-avatar" element={<AvatarSetup />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
 export default App;
-<h1 className="text-5xl text-purple-500">
-  Tailwind Test
-</h1>
