@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import ChatUI from "../components/ChatUI";
 import AddFriendPanel from "../components/AddFriendPanel";
 import { ChatContext } from "../context/ChatContext";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 
 const socket = io("http://localhost:5000");
 
@@ -16,20 +16,45 @@ export default function Chat() {
   const { currentRoom, createRoom, joinRoom, rooms, addMessageToRoom } = useContext(ChatContext);
 
   useEffect(() => {
-    socket.on("receive-message", (msg) => {
+    console.log("Socket connected:", socket.connected);
+    
+    const handleReceiveMessage = (msg) => {
+      console.log("Message received from server:", msg);
       setMessages((prev) => [...prev, msg]);
       if (currentRoom) {
         addMessageToRoom(currentRoom.id, msg);
       }
+    };
+
+    socket.on("receive-message", handleReceiveMessage);
+
+    socket.on("connect", () => {
+      console.log("Socket.IO connected");
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Socket.IO disconnected");
     });
 
     return () => {
-      socket.off("receive-message");
+      socket.off("receive-message", handleReceiveMessage);
+      socket.off("connect");
+      socket.off("disconnect");
     };
   }, [currentRoom, addMessageToRoom]);
 
   const sendMessage = () => {
     if (!message.trim()) return;
+    
+    console.log("Sending message:", message);
+    
+    // Add message immediately to UI
+    setMessages((prev) => [...prev, message]);
+    if (currentRoom) {
+      addMessageToRoom(currentRoom.id, message);
+    }
+    
+    // Emit to server
     socket.emit("send-message", message);
     setMessage("");
   };
