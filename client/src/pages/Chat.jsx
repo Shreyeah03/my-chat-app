@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ChatUI from "../components/ChatUI";
 import { ChatContext } from "../context/ChatContext";
@@ -15,6 +15,20 @@ export default function Chat() {
   const [newRoomName, setNewRoomName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentUser = JSON.parse(localStorage.getItem("chat-user"));
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowCreateRoom(false);
+      }
+    };
+
+    if (showCreateRoom) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showCreateRoom]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -81,7 +95,7 @@ export default function Chat() {
         </div>
 
         {/* Create Room Button */}
-        <div className="px-6 py-4 relative">
+        <div className="px-6 py-4 relative" ref={dropdownRef}>
           <button
             onClick={() => setShowCreateRoom(!showCreateRoom)}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
