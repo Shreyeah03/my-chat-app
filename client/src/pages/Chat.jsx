@@ -235,21 +235,12 @@ export default function Chat() {
             roomName={roomName}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
-            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6">
-              <MessageSquare size={48} className="text-gray-400" />
-            </div>
-            <p className="text-2xl font-semibold text-gray-900 mb-2">
-              No room selected
-            </p>
-            <p className="text-gray-500 text-center max-w-sm mb-8">
-              Select a room from the sidebar or create a new one to start chatting with others.
-            </p>
+          <div className="flex-1 flex items-center justify-center bg-white">
             <button
               onClick={() => setShowCreateRoom(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-lg shadow-md"
             >
-              Create Room
+              + Start New Chat
             </button>
           </div>
         )}
