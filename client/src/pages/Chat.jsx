@@ -30,8 +30,6 @@ export default function Chat() {
 
   const sendMessage = () => {
     if (!message.trim()) return;
-    // Add message immediately to UI
-    setMessages((prev) => [...prev, message]);
     socket.emit("send-message", message);
     setMessage("");
   };
