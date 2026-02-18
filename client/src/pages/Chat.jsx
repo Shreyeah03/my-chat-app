@@ -1,26 +1,32 @@
-import { useEffect, useState, useContext } from "react";
-import { io } from "socket.io-client";
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import ChatUI from "../components/ChatUI";
-import AddFriendPanel from "../components/AddFriendPanel";
 import { ChatContext } from "../context/ChatContext";
-import { Plus, MessageSquare, Users, Settings, LogOut, ChevronDown, Hash, Volume2, Phone, Search } from "lucide-react";
-
-const socket = io("http://localhost:5000");
+import socket from "../socket";
+import { LogOut, Plus, MessageSquare, Menu, X } from "lucide-react";
 
 export default function Chat() {
+  const navigate = useNavigate();
+  const { rooms, createRoom, addMessageToRoom, currentRoom, setCurrentRoom } = useContext(ChatContext);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [roomName, setRoomName] = useState("");
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const { currentRoom, createRoom, joinRoom, rooms, addMessageToRoom } = useContext(ChatContext);
+  const currentUser = JSON.parse(localStorage.getItem("chat-user"));
 
   useEffect(() => {
-    socket.on("receive-message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-      if (currentRoom) {
-        addMessageToRoom(currentRoom.id, msg);
+    if (!currentUser) {
+      navigate("/auth");
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    socket.on("receive-message", (data) => {
+      if (currentRoom && data.roomId === currentRoom.id) {
+        setMessages((prev) => [...prev, data.message]);
+        addMessageToRoom(currentRoom.id, data.message);
       }
     });
 
@@ -29,186 +35,207 @@ export default function Chat() {
     };
   }, [currentRoom, addMessageToRoom]);
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
-    socket.emit("send-message", message);
-    setMessage("");
-  };
+  useEffect(() => {
+    if (currentRoom) {
+      setMessages(currentRoom.messages || []);
+      setRoomName(currentRoom.name);
+    }
+  }, [currentRoom]);
 
-  const handleCreateRoom = () => {
-    if (roomName.trim()) {
-      createRoom(roomName);
-      setRoomName("");
-      setShowCreateRoom(false);
-      setMessages([]);
+  const sendMessage = () => {
+    if (message.trim() && currentRoom) {
+      socket.emit("send-message", {
+        message: message,
+        roomId: currentRoom.id,
+      });
+      setMessage("");
     }
   };
 
-  const handleJoinRoom = (room) => {
-    joinRoom(room.id);
-    setMessages(room.messages || []);
+  const handleCreateRoom = () => {
+    if (newRoomName.trim()) {
+      const newRoom = createRoom(newRoomName);
+      setCurrentRoom(newRoom);
+      setShowCreateRoom(false);
+      setNewRoomName("");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("chat-user");
+    navigate("/auth");
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white overflow-hidden">
-      {/* Left Sidebar - Servers */}
-      <div className="w-20 bg-gray-950 border-r border-gray-800 flex flex-col items-center py-3 gap-3 shadow-xl">
-        {/* Logo */}
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-lg hover:rounded-2xl transition-all cursor-pointer">
-          C
+    <div className="flex h-screen bg-gray-50 text-gray-900">
+      {/* SIDEBAR */}
+      <div
+        className={`${
+          sidebarOpen ? "w-80" : "w-0"
+        } transition-all duration-300 bg-white border-r border-gray-200 flex flex-col overflow-hidden shadow-sm`}
+      >
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-gray-100">
+          <h1 className="text-3xl font-bold text-gray-900">Chat</h1>
+          <p className="text-sm text-gray-500 mt-1">Simple messaging</p>
         </div>
 
-        <div className="w-10 h-10 bg-gray-700 rounded-full hover:bg-blue-500 transition flex items-center justify-center cursor-pointer" title="Add server">
-          <Plus size={20} />
-        </div>
+        {/* Create Room Button */}
+        <div className="px-6 py-4 relative">
+          <button
+            onClick={() => setShowCreateRoom(!showCreateRoom)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+          >
+            <Plus size={18} />
+            New Chat
+          </button>
 
-        <div className="flex-1" />
-
-        <button className="w-10 h-10 bg-gray-700 rounded-full hover:bg-gray-600 transition flex items-center justify-center" title="Settings">
-          <Settings size={20} />
-        </button>
-
-        <button className="w-10 h-10 bg-gray-700 rounded-full hover:bg-red-600 transition flex items-center justify-center" title="Logout">
-          <LogOut size={20} />
-        </button>
-      </div>
-
-      {/* Main Sidebar - Channels & Friends */}
-      <div className="w-72 bg-gray-800 border-r border-gray-700 flex flex-col shadow-lg">
-        {/* Server Header */}
-        <div className="h-14 bg-gray-700 border-b border-gray-600 px-4 flex items-center justify-between hover:bg-gray-650 transition cursor-pointer">
-          <h1 className="font-bold text-white">Chat Server</h1>
-          <ChevronDown size={20} className="text-gray-400" />
-        </div>
-
-        {/* Channels */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Online Friends - Quick Access */}
-          <div className="px-2 pt-4 pb-2">
-            <p className="text-xs font-bold text-gray-400 uppercase px-2 mb-2">Channels</p>
-            {rooms.length === 0 ? (
-              <p className="text-xs text-gray-500 px-3 py-2 text-center">No rooms yet</p>
-            ) : (
-              rooms.map((room) => (
-                <button
-                  key={room.id}
-                  onClick={() => handleJoinRoom(room)}
-                  className={`w-full text-left px-3 py-2 rounded-lg mb-1 transition flex items-center gap-2 ${
-                    currentRoom?.id === room.id
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-400 hover:text-white hover:bg-gray-700"
-                  }`}
-                >
-                  <Hash size={16} />
-                  <span className="text-sm">{room.name}</span>
-                  <span className="text-xs ml-auto bg-gray-600 px-1.5 py-0.5 rounded">
-                    {room.messages?.length || 0}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-
-          {/* Create Channel Form */}
+          {/* Dropdown Menu */}
           {showCreateRoom && (
-            <div className="px-3 py-3 border-t border-gray-700 bg-gray-700/30">
+            <div className="absolute left-6 right-6 top-full mt-2 bg-white border-2 border-blue-600 rounded-xl p-4 shadow-2xl z-20">
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Room Name</label>
               <input
                 type="text"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleCreateRoom()}
-                placeholder="Channel name..."
-                className="w-full px-3 py-2 bg-gray-700 rounded-lg text-white text-sm outline-none focus:ring-2 ring-blue-500 mb-2 placeholder-gray-500"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") handleCreateRoom();
+                }}
+                placeholder="e.g., web-dev, gaming"
+                className="w-full bg-blue-50 border-2 border-blue-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition text-sm mb-3"
                 autoFocus
               />
+
               <div className="flex gap-2">
                 <button
-                  onClick={handleCreateRoom}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition"
-                >
-                  Create
-                </button>
-                <button
-                  onClick={() => setShowCreateRoom(false)}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm font-semibold transition"
+                  onClick={() => {
+                    setShowCreateRoom(false);
+                    setNewRoomName("");
+                  }}
+                  className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium text-gray-700 text-sm"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={handleCreateRoom}
+                  disabled={!newRoomName.trim()}
+                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Create
                 </button>
               </div>
             </div>
           )}
-
-          {/* Friends Section */}
-          <div className="px-2 pt-4 pb-2 border-t border-gray-700 mt-4">
-            <div className="flex items-center justify-between px-2 mb-2">
-              <p className="text-xs font-bold text-gray-400 uppercase">Friends</p>
-              <button 
-                onClick={() => setShowCreateRoom(true)}
-                className="text-gray-400 hover:text-white hover:bg-gray-700 p-1 rounded transition"
-                title="Add channel"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-            <AddFriendPanel />
-          </div>
         </div>
 
-        {/* User Profile */}
-        <div className="h-14 bg-gray-700 border-t border-gray-600 px-4 flex items-center justify-between hover:bg-gray-650 transition cursor-pointer">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-bold">
-              U
+        {/* Rooms List */}
+        <div className="flex-1 overflow-y-auto px-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 py-3 mb-2">
+            Your Rooms
+          </p>
+          {rooms.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <MessageSquare size={32} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-sm text-gray-400">No rooms yet</p>
+              <p className="text-xs text-gray-400 mt-1">Create one to get started</p>
             </div>
-            <p className="text-sm font-semibold">You</p>
+          ) : (
+            rooms.map((room) => (
+              <button
+                key={room.id}
+                onClick={() => setCurrentRoom(room)}
+                className={`w-full text-left px-4 py-3 rounded-lg transition text-sm font-medium mb-2 ${
+                  currentRoom?.id === room.id
+                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                    : "text-gray-700 hover:bg-gray-50 border border-transparent"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>#{room.name}</span>
+                  {room.messages?.length > 0 && (
+                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                      {room.messages.length}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+
+        {/* User Info */}
+        <div className="px-4 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-semibold text-white text-sm">
+                {currentUser?.email[0].toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
+                  {currentUser?.email?.split("@")[0]}
+                </p>
+                <p className="text-xs text-gray-500">Online</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-red-50 rounded-lg transition text-gray-500 hover:text-red-600 flex-shrink-0"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
-          <Settings size={18} className="text-gray-400 hover:text-white" />
         </div>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {currentRoom ? (
-          <>
-            {/* Channel Header */}
-            <div className="h-14 bg-gray-800 border-b border-gray-700 px-6 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-3">
-                <Hash size={20} className="text-gray-400" />
-                <div>
-                  <h2 className="font-bold">{currentRoom.name}</h2>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gray-700 rounded transition" title="Search">
-                  <Search size={18} />
-                </button>
-                <button className="p-2 hover:bg-gray-700 rounded transition" title="Voice call">
-                  <Phone size={18} />
-                </button>
-                <button className="p-2 hover:bg-gray-700 rounded transition" title="Members">
-                  <Users size={18} />
-                </button>
-              </div>
+      {/* MAIN AREA */}
+      <div className="flex-1 flex flex-col bg-white">
+        {/* Top Bar */}
+        <div className="h-16 border-b border-gray-200 bg-white flex items-center px-6 gap-4 shadow-sm">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-600 lg:hidden"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          {currentRoom ? (
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                # {roomName}
+              </h2>
+              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                {messages.length} messages
+              </span>
             </div>
+          ) : (
+            <p className="text-gray-500">Select a room to start chatting</p>
+          )}
+        </div>
 
-            <ChatUI
-              message={message}
-              setMessage={setMessage}
-              messages={messages}
-              sendMessage={sendMessage}
-            />
-          </>
+        {/* Chat Content */}
+        {currentRoom ? (
+          <ChatUI
+            message={message}
+            setMessage={setMessage}
+            messages={messages}
+            sendMessage={sendMessage}
+            roomName={roomName}
+          />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-            <MessageSquare size={64} strokeWidth={1} className="mb-4 opacity-20" />
-            <p className="text-xl font-semibold mb-2">No channel selected</p>
-            <p className="text-sm">Select a channel to start chatting or create a new one</p>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
+            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+              <MessageSquare size={48} className="text-gray-400" />
+            </div>
+            <p className="text-2xl font-semibold text-gray-900 mb-2">
+              No room selected
+            </p>
+            <p className="text-gray-500 text-center max-w-sm mb-8">
+              Select a room from the sidebar or create a new one to start chatting with others.
+            </p>
             <button
               onClick={() => setShowCreateRoom(true)}
-              className="mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold transition"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
             >
-              Create Channel
+              Create Room
             </button>
           </div>
         )}
