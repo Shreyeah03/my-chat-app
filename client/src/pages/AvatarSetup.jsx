@@ -1,50 +1,37 @@
 import { AvatarCreator } from "@readyplayerme/react-avatar-creator";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 export default function AvatarSetup() {
   const navigate = useNavigate();
 
-  // Prevent direct access without login
-  useEffect(() => {
+  const handleAvatarExported = (event) => {
+    const avatarUrl = event.data.url;
+
+    // 🔥 Get existing user
     const user = JSON.parse(localStorage.getItem("chat-user"));
 
-    if (!user) {
-      navigate("/");
-    }
-  }, [navigate]);
-
-  const handleAvatarSelected = (avatarUrl) => {
-    const user = JSON.parse(localStorage.getItem("chat-user"));
-
+    // 🔥 Update user with avatar
     const updatedUser = {
       ...user,
+      isAvatarImageSet: true,
       avatarImage: avatarUrl,
-      isAvatarImageSet: true
     };
 
+    // 🔥 Save back to localStorage
     localStorage.setItem("chat-user", JSON.stringify(updatedUser));
 
+    // 🔥 Redirect to chat (BREAKS LOOP)
     navigate("/chat");
   };
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white">
-
-      <h1 className="text-3xl font-semibold mb-6">
-        Create Your 3D Avatar
-      </h1>
-
+    <div className="h-screen flex justify-center items-center bg-[#0f172a]">
       <AvatarCreator
         subdomain="demo"
         config={{ clearCache: true }}
         style={{ width: "600px", height: "700px" }}
-        onAvatarExported={(event) => {
-          const avatarUrl = event.data.url;
-          handleAvatarSelected(avatarUrl);
-        }}
+        onAvatarExported={handleAvatarExported}
       />
-
     </div>
   );
 }

@@ -13,13 +13,13 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.2",
-   
     "concurrently": "^8.2.2",
-   
     "stylelint-config-tailwindcss": "^1.0.1"
-   
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.8",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "react-router-dom": "^7.13.0",
