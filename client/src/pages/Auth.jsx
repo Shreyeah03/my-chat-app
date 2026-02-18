@@ -17,7 +17,7 @@ export default function Auth() {
     try {
       let userCredential;
 
-      // ✅ LOGIN
+  
       if (isLogin) {
         userCredential = await signInWithEmailAndPassword(
           auth,
@@ -26,7 +26,6 @@ export default function Auth() {
         );
       }
 
-      // ✅ SIGNUP
       else {
         userCredential = await createUserWithEmailAndPassword(
           auth,
